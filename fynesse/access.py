@@ -4,7 +4,8 @@ import pymysql
 import osmnx as ox
 import matplotlib.pyplot as plt
 import warnings
-
+import pandas as pd
+import geopandas as gpd
 
 
 """These are the types of import we might expect in this file
