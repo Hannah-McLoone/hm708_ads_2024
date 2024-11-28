@@ -1,12 +1,18 @@
 from .config import *
 import requests
 import pymysql
-import osmnx as ox
 import matplotlib.pyplot as plt
 import warnings
 import pandas as pd
 import geopandas as gpd
-
+import numpy as np
+import osmnx as ox
+import pymysql
+import re
+import zipfile
+import io
+import os
+import sqlite3
 
 """These are the types of import we might expect in this file
 import httplib2
@@ -220,7 +226,7 @@ def housing_upload_join_data(conn, year):
 
 
 
-def get_address_area(latitude,longitude, plot = False ):
+def get_address_area(latitude,longitude):
   """
   this functiontakes the longitude and latitude and returns the building in that 1km by 1km square that have ful addresses.
   if plot is set to true then it plots the data
@@ -242,30 +248,5 @@ def get_address_area(latitude,longitude, plot = False ):
   # 1 degree equates to about 111,111 metres. the area method returns an area in degrees squared
   #to convert to metres squared, multiply it by 111,111 squared. this is not fully accurate away from the equator
   addressed['area'] = addressed['geometry'].apply(lambda x: x.area * 111111 * 111111)
-
-
-  if plot:
-    #Plot a map of the area, using pink to mark the buildings with addresses and the ones without.
-
-    #this is the opposite of selectong addressed
-    not_addressed = buildings_df[buildings_df['addr:street'].isna() | buildings_df['addr:postcode'].isna() | (buildings_df['addr:housenumber'].isna() & buildings_df['addr:housename'].isna())]
-    fig, ax = plt.subplots()
-    graph = ox.graph_from_bbox(north, south, east, west)
-
-    # Plot street edges
-    nodes, edges = ox.graph_to_gdfs(graph)
-    edges.plot(ax=ax, linewidth=1, edgecolor="dimgray")
-
-    ax.set_xlim([west, east])
-    ax.set_ylim([south, north])
-    ax.set_xlabel("longitude")
-    ax.set_ylabel("latitude")
-
-    # Plot buildings
-    gdf = gpd.GeoDataFrame(addressed, geometry='geometry')
-    gdf2 = gpd.GeoDataFrame(not_addressed, geometry='geometry')
-    gdf2.plot(ax=ax, color='grey')
-    gdf.plot(ax=ax, color='pink')
-    plt.tight_layout()
 
   return(addressed)
