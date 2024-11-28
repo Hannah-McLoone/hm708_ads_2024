@@ -24,8 +24,135 @@ def data():
     raise NotImplementedError
 
 
-def hello_world():
-  print("Hello from the data science library!")
+def count_pois_near_coordinates(latitude: float, longitude: float, tags: dict, distance_km: float = 1.0) -> dict:
+    """
+    Count Points of Interest (POIs) near a given pair of coordinates within a specified distance.
+    Args:
+        latitude (float): Latitude of the location.
+        longitude (float): Longitude of the location.
+        tags (dict): A dictionary of OSM tags to filter the POIs (e.g., {'amenity': True, 'tourism': True}).
+        distance_km (float): The distance around the location in kilometers. Default is 1 km.
+    Returns:
+        dict: A dictionary where keys are the OSM tags and values are the counts of POIs for each tag.
+    """
+
+
+    #this approximation is only accurate at the equator, as you get closer to the poles it is less accurate
+    box_width = distance_km * 0.008
+    box_height = distance_km * 0.008
+
+    #when we say 'around', we mean the square box enclosing the area. not a circular surrounding area
+    north = latitude + box_height/2
+    south = latitude - box_width/2
+    west = longitude - box_width/2
+    east = longitude + box_width/2
+    poi_counts = {}
+    try:
+      pois = ox.features_from_bbox((west, south, east, north), tags)
+    except:
+      for tag, tag_values in tags.items():
+            if isinstance(tag_values, list):
+              for value in tag_values:
+                poi_counts[f"{tag}:{value}"] = 0
+
+            else:
+              poi_counts[tag] = 0
+      return poi_counts
+
+    pois_df = pd.DataFrame(pois)
+
+    #count the occurrences of every tag
+    for tag, tag_values in tags.items():
+          if isinstance(tag_values, list):
+            for value in tag_values:
+              if tag in pois_df.columns:
+                poi_counts[f"{tag}:{value}"] = max((pois_df[tag] == value).sum(),0)
+              else:
+                poi_counts[f"{tag}:{value}"] = 0
+
+          else:
+            if tag in pois_df.columns:
+              poi_counts[tag] = max(pois_df[tag].notnull().sum(),0)
+            else:
+              poi_counts[tag] = 0
+
+    return poi_counts
+
+
+def download_census_data(code, base_dir=''):
+  url = f'https://www.nomisweb.co.uk/output/census/2021/census2021-{code.lower()}.zip'
+  extract_dir = os.path.join(base_dir, os.path.splitext(os.path.basename(url))[0])
+
+  if os.path.exists(extract_dir) and os.listdir(extract_dir):
+    print(f"Files already exist at: {extract_dir}.")
+    return
+
+  os.makedirs(extract_dir, exist_ok=True)
+  response = requests.get(url)
+  response.raise_for_status()
+
+  with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
+    zip_ref.extractall(extract_dir)
+
+  print(f"Files extracted to: {extract_dir}")
+
+
+
+def load_census_data(code, level='msoa'):
+  return pd.read_csv(f'census2021-{code.lower()}/census2021-{code.lower()}-{level}.csv')
+
+
+def calculate_ratio(dataframe,population, columns = None):
+  if columns == None:
+    columns = dataframe.select_dtypes(include=['int', 'float']).columns
+
+  for column in columns:
+    if column != population and column != 'date':
+      dataframe[column] = dataframe[column] / dataframe[population]
+
+  return dataframe
+
+
+
+def merge_on_town(dataframe):
+  #dataframe.drop(['geography code'],axis=1,inplace=True)
+
+  dataframe['geography'] = dataframe['geography'].str.replace(r'\d+$', '', regex=True).str.strip()
+  dataframe = dataframe.groupby('geography', as_index=False).sum()
+  return dataframe
+
+def create_town_name(dataframe):
+  dataframe['town_name'] = dataframe['geography'].str.replace(r'\d+$', '', regex=True).str.strip()
+  return dataframe
+
+def filter_on_date(dataframe, date):
+  dataframe = dataframe[dataframe['date'] == date]
+  return dataframe
+
+
+
+
+
+
+
+def count_decimal_digits(number):
+  # Convert number to string
+  str_number = str(number)
+
+  # Check if there is a decimal point
+  if '.' in str_number:
+      # Split the number at the decimal point and count the digits after it
+      decimal_part = str_number.split('.')[1]
+      return len(decimal_part)
+  else:
+      # If there is no decimal point, return 0
+      return 0
+
+
+
+#---------------------------------------------------------------------
+
+
 
 def download_price_paid_data(year_from, year_to):
     # Base URL where the dataset is stored 
@@ -89,50 +216,6 @@ def housing_upload_join_data(conn, year):
   conn.commit()
   
   print('Data stored for year: ' + str(year))
-
-
-
-def count_pois_near_coordinates(latitude: float, longitude: float, tags: dict, distance_km: float = 1.0) -> dict:
-    """
-    Count Points of Interest (POIs) near a given pair of coordinates within a specified distance.
-    Args:
-        latitude (float): Latitude of the location.
-        longitude (float): Longitude of the location.
-        tags (dict): A dictionary of OSM tags to filter the POIs (e.g., {'amenity': True, 'tourism': True}).
-        distance_km (float): The distance around the location in kilometers. Default is 1 km.
-    Returns:
-        dict: A dictionary where keys are the OSM tags and values are the counts of POIs for each tag.
-    """
-
-
-    #this approximation is only accurate at the equator, as you get closer to the poles it is less accurate
-    box_width = distance_km * 0.008
-    box_height = distance_km * 0.008
-
-    #when we say 'around', we mean the square box enclosing the area. not a circular surrounding area
-    north = latitude + box_height/2
-    south = latitude - box_width/2
-    west = longitude - box_width/2
-    east = longitude + box_width/2
-    pois = ox.geometries_from_bbox(north, south, east, west, tags)
-
-
-    pois_df = pd.DataFrame(pois)
-
-
-    #count the occurrences of every tag
-    poi_counts = {}
-    for tag, tag_values in tags.items():
-        if tag in pois_df.columns:
-            if isinstance(tag_values, list):
-                for value in tag_values:
-                    poi_counts[f"{tag}:{value}"] = (pois_df[tag] == value).sum()
-            else:
-                poi_counts[tag] = pois_df[tag].notnull().sum()
-        else:
-            poi_counts[tag] = 0
-
-    return poi_counts
 
 
 
