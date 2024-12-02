@@ -1,5 +1,5 @@
 from .config import *
-
+import requests
 from . import access
 
 """These are the types of import we might expect in this file
