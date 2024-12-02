@@ -29,3 +29,23 @@ def view(data):
 def labelled(data):
     """Provide a labelled set of data ready for supervised learning."""
     raise NotImplementedError
+
+
+def querying_count_for_eng_wls(criteria):
+  total = 0
+  overpass_url = "https://overpass-api.de/api/interpreter"
+
+  for country in ['ENG','WLS']:
+    query = f"""
+    [out:json][timeout:50];
+    area["ISO3166-2"="GB-{country}"]->.searchArea;
+    node[{criteria}](area.searchArea);
+    out count;
+    """
+    response = requests.post(overpass_url, data={'data': query})
+
+    if response.status_code == 200:
+        data = response.json()
+        total = total + int(data.get('elements', [{}])[0].get('tags', {}).get('total', 'Unknown'))
+
+  return total
