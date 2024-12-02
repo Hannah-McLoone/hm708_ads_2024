@@ -154,9 +154,29 @@ def count_decimal_digits(number):
       # If there is no decimal point, return 0
       return 0
 
+#---------------------deprecated-------------------------------------------------------
+
+def get_feature_coords_from_town(town,feature):
+    overpass_url = "https://overpass-api.de/api/interpreter"
+    query = f"""
+    [out:json][timeout:50];
+    area[name="{town}"]->.searchArea;
+    node[{feature}](area.searchArea);
+    out body;
+    """
+
+    response = requests.post(overpass_url, data={'data': query})
+    if response.status_code == 200:
+        data = response.json()
+        data = data.get('elements', [{}])
+        coords = [(d['lat'],d['lon']) for d in data if 'lat' in d and 'lon' in d]
+        return(coords)
+    else:
+        print(f"Failed to retrieve data. HTTP Status Code: {response.status_code}")
+        print(f"Response: {response.text}")
 
 
-#---------------------------------------------------------------------
+#-------------------previous exercises--------------------------------------------------
 
 
 
