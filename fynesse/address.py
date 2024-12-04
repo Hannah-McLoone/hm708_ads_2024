@@ -25,6 +25,8 @@ from matplotlib import pyplot as plt
 def k_fold(k, X, y, alpha=0, L1_wt=0):
   indexes =[i for i in range(len(X))]
   random.shuffle(indexes)
+  X = X.astype(float)
+  y = y.astype(float)
   X  = X.iloc[indexes]
   y  = y.iloc[indexes]
   start = 0
