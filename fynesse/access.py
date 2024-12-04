@@ -136,7 +136,20 @@ def filter_on_date(dataframe, date):
   return dataframe
 
 
+def calculate_ratio_dirty(df, population, columns=None):
+    #for dirty data
+    df_copy = df.copy()
+    if columns is None:
+        columns = df_copy.columns
 
+    for column in columns:
+        if column != population and column != 'date':
+            # Convert non-numeric values to NaN
+            df_copy[column] = pd.to_numeric(df_copy[column], errors='coerce')
+            # Perform the division, ignoring NaN values
+            df_copy[column] = df_copy[column] / df_copy[population]
+
+    return df_copy.fillna(df)
 
 
 
