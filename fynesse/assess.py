@@ -49,3 +49,126 @@ def querying_count_for_eng_wls(criteria):
         total = total + int(data.get('elements', [{}])[0].get('tags', {}).get('total', 'Unknown'))
 
   return total
+
+
+
+#assess functions:
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import silhouette_score
+
+
+
+def elbow(df, max_k = 20):
+  scaler = StandardScaler()
+  df = scaler.fit_transform(df)
+  inertia = []
+  for k in range(1, max_k):
+      kmeans = KMeans(n_clusters=k, random_state=0)
+      kmeans.fit(df)
+      inertia.append(kmeans.inertia_)
+
+  plt.plot(range(1, max_k), inertia, marker='o')
+  plt.xlabel('Number of clusters')
+  plt.ylabel('Inertia')
+  plt.title('Elbow Method')
+  plt.show()
+
+
+
+
+
+
+def convert_to_percentage_increase(df):
+  # Convert all columns to numeric, replacing non-numeric values with NaN
+  df = df.apply(pd.to_numeric, errors='coerce')
+
+  # Replace zeros with NaN to treat them as missing values for interpolation
+  df = df.replace(0, np.nan)
+
+  # Interpolate all columns (vectorized operation)
+  df = df.interpolate(axis=1, limit_direction='both')
+
+  # Compute percentage increase along rows (vectorized operation)
+  df_percentage_increase = df.pct_change(axis=1) * 100
+
+  # Fill NaN with 0
+  df_percentage_increase = df_percentage_increase.fillna(0)
+  return df_percentage_increase
+
+
+
+
+
+def plot_by_cluster(df, y_range = (-100,5000000)):
+  data = df.drop(columns='cluster')  # Drop the 'cluster' column to use the time series data
+  clusters = df['cluster']
+
+  colors = plt.cm.get_cmap('tab10', len(clusters.unique()))
+
+  plt.figure(figsize=(10, 6))  # Adjust the figure size if necessary!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  for i, cluster_id in enumerate(clusters.unique()):
+      cluster_data = data[clusters == cluster_id]
+      for _, row in cluster_data.iterrows():
+          plt.plot(row.index, row.values, color=colors(i), alpha=0.7)
+
+  # Title and labels
+  plt.title('Time Series Data Colored by Cluster')
+  plt.xlabel('Time')
+  plt.ylabel('percentage increase')
+  plt.ylim(y_range[0], y_range[1])
+  plt.show()
+
+
+def silhouette(df):
+  scaler = StandardScaler()
+  df = scaler.fit_transform(df)
+  silhouette_scores = []
+  k_range = range(2, 20)
+
+  for k in k_range:
+      kmeans = KMeans(n_clusters=k, random_state=0)
+      labels = kmeans.fit_predict(df)
+      score = silhouette_score(df, labels)
+      silhouette_scores.append(score)
+
+  # plot
+  plt.plot(k_range, silhouette_scores, marker='o')
+  plt.xlabel('Number of clusters')
+  plt.ylabel('Silhouette Score')
+  plt.title('Silhouette Method')
+  plt.show()
+
+
+def plot_sample_of_cluster(df,number = 100, y_range = (-100,5000000)):
+  data = df.drop(columns='cluster')
+  clusters = df['cluster']
+
+  # Get a colormap with a distinct color for each cluster
+  colors = plt.cm.get_cmap('tab10', len(clusters.unique()))
+
+  # Set up the figure
+  plt.figure(figsize=(10, 6))
+
+  # Loop through each unique cluster
+  for i, cluster_id in enumerate(clusters.unique()):
+      # Filter data for the current cluster
+      cluster_data = data[clusters == cluster_id]
+
+      # Sample 100 random rows from each cluster (if there are at least 100)
+      sampled_data = cluster_data.sample(n=number, random_state=42) if len(cluster_data) >= 100 else cluster_data
+
+      # Plot each of the sampled rows
+      for _, row in sampled_data.iterrows():
+          plt.plot(row.index, row.values, color=colors(i), alpha=0.3)
+
+  # Show the plot
+  plt.title('Time Series Data Colored by Cluster')
+  plt.xlabel('Time')
+  plt.ylim(y_range[0], y_range[1])
+  plt.ylabel('percentage increase')
+  plt.show()
