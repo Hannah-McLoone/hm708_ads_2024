@@ -172,3 +172,35 @@ def plot_sample_of_cluster(df,number = 100, y_range = (-100,5000000)):
   plt.ylim(y_range[0], y_range[1])
   plt.ylabel('percentage increase')
   plt.show()
+
+
+
+
+def map_census_value_by_colour(conn,table,column,scale):
+  cur = conn.cursor()
+  cur.execute(f"SELECT geography_code, {column} FROM {table};")
+  census = cur.fetchall()
+  census = pd.DataFrame(census)
+  census.columns = ['geography_code', column]
+
+
+  town_coords = pd.read_csv('Middle_layer_Super_Output_Areas_December_2021_Boundaries_EW_BSC_V3_-5990297399386808643.csv')
+  joined = census.merge(town_coords,  left_on=['geography_code'], right_on = ['MSOA21CD'], how='inner')
+
+  # Define a custom normalization focusing on the 0.025 to 0.125 range
+  norm = Normalize(vmin = scale[0], vmax=scale[1])
+  sizes = joined['Shape__Area'] /2000000
+
+
+  plt.figure(figsize=(10, 6))
+  scatter = plt.scatter(
+      joined['LONG'], joined['LAT'],
+      c=joined[column],
+      cmap='viridis',
+      norm=norm,  # Custom normalization
+      s=sizes,    # Set the size of the dots proportional to 'Shape__Area'
+  )
+
+  plt.colorbar(scatter, label='Proportion')
+  plt.title(table + " : "+column)
+  plt.show()
