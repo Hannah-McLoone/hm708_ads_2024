@@ -167,6 +167,19 @@ def count_decimal_digits(number):
       # If there is no decimal point, return 0
       return 0
 
+
+def uplaod_df_to_aws(conn, df,table_name):
+  temp_csv_file = "temp_data.csv"
+  df.to_csv(temp_csv_file, index=False, header=False)
+  #sql = f"""LOAD DATA LOCAL INFILE "temp_data.csv" INTO TABLE `{table_name}` FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED by '"' LINES STARTING BY '' TERMINATED BY '\n';"""
+  #%sql {sql}
+  #os.remove(temp_csv_file)
+  cur = conn.cursor()
+  cur.execute(f"""LOAD DATA LOCAL INFILE "temp_data.csv" INTO TABLE `{table_name}` FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED by '"' LINES STARTING BY '' TERMINATED BY '\n';""")
+  conn.commit()
+  os.remove(temp_csv_file)
+
+
 #---------------------deprecated-------------------------------------------------------
 
 def get_feature_coords_from_town(town,feature):
