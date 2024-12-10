@@ -182,6 +182,66 @@ def uplaod_df_to_aws(conn, df,table_name):
 
 #---------------------deprecated-------------------------------------------------------
 
+
+def add_feature_column(conn,condition,col_name):
+  cur = conn.cursor()
+
+  # Add the new column to the table
+  query = f"ALTER TABLE `features_by_MSOA` ADD {col_name} INTEGER"
+  cur.execute(query)
+  conn.commit()
+
+  # Fetch distinct location names
+  cur.execute("SELECT DISTINCT `location_name` FROM `features_by_MSOA`")
+  towns = [row[0] for row in cur.fetchall()]
+
+  progress = 0
+
+  for town in towns:
+    print("done towns:",progress)
+    progress = progress+1
+
+    cur.execute(f"SELECT `latitude`, `longitude` FROM `features_by_MSOA` WHERE location_name = '{town}';")
+    centres = cur.fetchall()
+
+    # Get POI coordinates based on the condition
+    pois = get_feature_coords_from_town(town, condition)
+        
+    centres = np.array(centres)
+    pois = np.array(pois)
+    centre_count = {(centre[0],centre[1]): 0 for centre in centres}
+    #accounting for the areas that are labeled differently under osm. would have done this more thorougly if pursued idea futher
+    if len(pois) == 0:
+      london_town = 'London Borough of '+ town
+      pois = get_feature_coords_from_town(london_town,condition)
+      pois = np.array(pois)
+
+
+    for p in pois:
+      distances = np.linalg.norm(centres - p, axis=1)
+
+      # Find the index of the smallest distance
+      closest_index = np.argmin(distances)
+
+      # Get the centre with the smallest distance
+      closest_point = centres[closest_index]
+      centre_count[(closest_point[0],closest_point[1])] = centre_count[(closest_point[0],closest_point[1])] + 1
+
+    for centre in centre_count:
+      lat = centre[0]
+      lat_dig = count_decimal_digits(lat)
+      lon = centre[1]
+      lon_dig = count_decimal_digits(lon)
+      number_counted = centre_count[centre]
+
+
+      query = f"UPDATE `features_by_MSOA` SET {col_name} = {number_counted} WHERE ROUND(`latitude`, {lat_dig}) = {lat} AND ROUND(`longitude`, {lon_dig}) = {lon};"
+      cur.execute(query)
+
+    conn.commit()
+  cur.close()
+
+
 def get_feature_coords_from_town(town,feature):
     overpass_url = "https://overpass-api.de/api/interpreter"
     query = f"""
