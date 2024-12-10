@@ -120,6 +120,8 @@ def k_fold(k, X, y, alpha=0, L1_wt=0, plot = False):
 
 
   if plot:
+    plt.xlim(plot[0][0], plot[0][1])
+    plt.ylim(plot[1][0], plot[1][1])
     plt.show()
 
   if isinstance(y, pd.DataFrame):
