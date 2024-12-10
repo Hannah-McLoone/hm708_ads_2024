@@ -13,6 +13,8 @@ import zipfile
 import io
 import os
 import sqlite3
+import csv
+from shapely.geometry import Point, Polygon
 
 """These are the types of import we might expect in this file
 import httplib2
