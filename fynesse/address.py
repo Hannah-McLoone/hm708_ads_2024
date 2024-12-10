@@ -21,6 +21,7 @@ import statsmodels.api as sm
 from scipy.stats import pearsonr
 from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 
