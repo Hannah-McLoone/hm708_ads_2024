@@ -204,3 +204,19 @@ def map_census_value_by_colour(conn,table,column,scale):
   plt.colorbar(scatter, label='Proportion')
   plt.title(table + " : "+column)
   plt.show()
+
+
+
+def heatmap(df):
+  plt.figure(figsize=(10, 8))
+  correlation_matrix = df.corr()
+  np.fill_diagonal(correlation_matrix.values, np.nan)
+  sns.heatmap(correlation_matrix, cmap='viridis', annot=False, fmt=".2f", cbar=True)
+
+  # Add labels and title
+  plt.title('Heatmap of Prices', fontsize=16)
+  plt.xlabel('Columns', fontsize=12)
+  plt.ylabel('Rows', fontsize=12)
+
+  # Show the plot
+  plt.show()
