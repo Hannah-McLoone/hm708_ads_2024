@@ -117,8 +117,8 @@ def pca_k_fold(k, X, y, pca_components, alpha=0, L1_wt=0, plot = False):
 
 
 
-    #-----pca
-# Scale the data
+
+    # Scale the data
     training_design = scaler.fit_transform(training_design)
     testing_design = scaler.transform(testing_design)
     
