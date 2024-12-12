@@ -23,6 +23,7 @@ from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 import numpy as np
 import requests
+from sklearn.preprocessing import StandardScaler
 
 
 
@@ -117,15 +118,21 @@ def pca_k_fold(k, X, y, pca_components, alpha=0, L1_wt=0, plot = False):
 
 
     #-----pca
+# Scale the data
     training_design = scaler.fit_transform(training_design)
+    testing_design = scaler.transform(testing_design)
+    
+    # PCA transformation
     pca.fit(training_design)
     training_design = pca.transform(training_design)
-
-    testing_design = scaler.transform(testing_design)
     testing_design = pca.transform(testing_design)
-
-
-    # Fit a simple linear model
+    
+    # Add constant for intercept
+    training_design = sm.add_constant(training_design, has_constant='add')
+    testing_design = sm.add_constant(testing_design, has_constant='add')
+    
+    # Fit OLS model
+    m_linear_basis = sm.OLS(training_y, training_design).fit()
     m_linear_basis = sm.OLS(training_y, training_design)
     results_basis = m_linear_basis.fit_regularized(alpha = alpha, L1_wt = L1_wt)
     y_pred_linear_basis = results_basis.predict(testing_design)
