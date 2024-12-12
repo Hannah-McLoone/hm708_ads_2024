@@ -60,16 +60,17 @@ def k_fold(k, X, y, alpha=0, L1_wt=0, plot = False):
     #uses a design matrix of non-linear functions.
     #y_pred_linear_basis = results_basis.get_prediction(testing_design).summary_frame()
     y_pred_linear_basis = results_basis.predict(testing_design)
-
+    
     predicted = predicted + list(y_pred_linear_basis)
     start = end
 
     if plot:
-      plt.scatter(testing_y, y_pred_linear_basis, alpha=0.1, s = 1)
+      plt.scatter(testing_y, y_pred_linear_basis)
 
-  plt.xlim(-1, 1)
-  plt.ylim(-1.5, 1.5)
+
   if plot:
+    plt.xlim(plot[0][0], plot[0][1])
+    plt.ylim(plot[1][0], plot[1][1])
     plt.show()
 
   if isinstance(y, pd.DataFrame):
@@ -79,7 +80,12 @@ def k_fold(k, X, y, alpha=0, L1_wt=0, plot = False):
 
 
 
-def k_fold(k, X, y, alpha=0, L1_wt=0, plot = False):
+
+def pca_k_fold(k, X, y, pca_components, alpha=0, L1_wt=0, plot = False):
+  scaler = StandardScaler()
+  pca = PCA(n_components=pca_components)
+
+
   indexes =[i for i in range(len(X))]
   X = X.astype(float)
   y = y.astype(float)
@@ -102,17 +108,29 @@ def k_fold(k, X, y, alpha=0, L1_wt=0, plot = False):
 
     testing_design = X.iloc[start:end]
     testing_y = y.iloc[start:end]
+
+
     training_design = pd.concat([X.iloc[0:start], X.iloc[end:len(indexes)]])
     training_y = pd.concat([y.iloc[0:start], y.iloc[end:len(indexes)]])
+
+
+
+    #-----pca
+    training_design = scaler.fit_transform(training_design)
+    pca.fit(training_design)
+    training_design = pca.transform(training_design)
+
+    testing_design = scaler.transform(testing_design)
+    testing_design = pca.transform(testing_design)
+
 
     # Fit a simple linear model
     m_linear_basis = sm.OLS(training_y, training_design)
     results_basis = m_linear_basis.fit_regularized(alpha = alpha, L1_wt = L1_wt)
-
-    #uses a design matrix of non-linear functions.
-    #y_pred_linear_basis = results_basis.get_prediction(testing_design).summary_frame()
     y_pred_linear_basis = results_basis.predict(testing_design)
-    
+
+
+
     predicted = predicted + list(y_pred_linear_basis)
     start = end
 
