@@ -24,6 +24,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import requests
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
 
 
