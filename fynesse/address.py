@@ -22,6 +22,7 @@ from scipy.stats import pearsonr
 from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 import numpy as np
+import requests
 
 
 
@@ -147,3 +148,41 @@ def pca_k_fold(k, X, y, pca_components, alpha=0, L1_wt=0, plot = False):
     y = y.values.flatten().tolist()
   correlation, p_value = pearsonr(y, predicted)
   return(correlation, p_value)
+
+
+
+def find_nearest_feature(lat, lon,condition):
+    # Define the Overpass API URL
+    overpass_url = "http://overpass-api.de/api/interpreter"
+
+    # Overpass QL query to find the nearest university
+    query = f"""
+    [out:json];
+    node
+      [{condition}]
+      (around:50000,{lat},{lon});  // Searches within 50 km radius
+    out body;
+    """
+
+    try:
+        # Send the request to the Overpass API
+        response = requests.get(overpass_url, params={'data': query})
+        response.raise_for_status()  # Raise HTTPError for bad responses
+
+        # Parse the JSON response
+        data = response.json()
+        if 'elements' in data and len(data['elements']) > 0:
+            # Sort results by distance (in case of multiple results)
+            universities = sorted(
+                data['elements'],
+                key=lambda x: ((x['lat'] - lat) ** 2 + (x['lon'] - lon) ** 2) ** 0.5
+            )
+
+            # Return the nearest university
+            nearest = universities[0]
+            return ((nearest['lat'] - lat) ** 2 + (nearest['lon'] - lon) ** 2) ** 0.5
+        else:
+            return "No universities found within the search radius."
+
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred: {e}"
